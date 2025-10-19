@@ -9,30 +9,46 @@ import (
 
 func TestFileSystemStore(t *testing.T) {
 
+	t.Run("Setup with default directory", func(t *testing.T) {
+		defaultDir := "testing"
+
+		store := FileSystemStore{}
+		err := store.Setup(defaultDir)
+
+		if err != nil {
+			t.Errorf("There was an error trying to setup directory")
+		}
+
+		if _, err = os.Stat(defaultDir); os.IsNotExist(err) {
+			t.Errorf("Directory %s does not exist after setup", defaultDir)
+		}
+	})
+
 	t.Run("Retrieve file in existing path", func(t *testing.T) {
 
-		tmpDir := t.TempDir()
+		store := FileSystemStore{defaultLocation: "testing"}
+
 		filename := "testFile"
 		initialData := []byte("Hello world")
 
-		createTempFile(t, tmpDir, filename, initialData)
+		createTempFile(t, store.defaultLocation, filename, initialData)
 
-		store := FileSystemStore{}
-		got, _ := store.Get(tmpDir, filename)
+		got, _ := store.Get(filename)
 
 		assertData(t, initialData, got)
 
 	})
 
 	t.Run("Retrieve file in non-existing path", func(t *testing.T) {
-		tmpDir := t.TempDir()
+
+		store := FileSystemStore{defaultLocation: "testing"}
+
 		filename := "testFile"
 		initialData := []byte("Hello world")
 
-		createTempFile(t, tmpDir, filename, initialData)
+		createTempFile(t, store.defaultLocation, filename, initialData)
 
-		store := FileSystemStore{}
-		_, err := store.Get(tmpDir, "non-existing")
+		_, err := store.Get("non-existing")
 
 		assertError(t, err)
 	})
