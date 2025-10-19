@@ -1,5 +1,6 @@
 package storage
 
 type Store interface {
-	Get(dir, file string) ([]byte, error)
+	Setup(defaultLocation string) error
+	Get(file string) ([]byte, error)
 }
