@@ -1,6 +1,8 @@
 package storage
 
+import "context"
+
 type Store interface {
-	Setup(defaultLocation string) error
-	Get(file string) ([]byte, error)
+	Setup(ctx context.Context, defaultLocation string) error
+	Get(ctx context.Context, fileName string) ([]byte, error)
 }

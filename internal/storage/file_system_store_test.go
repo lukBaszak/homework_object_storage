@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +14,7 @@ func TestFileSystemStore(t *testing.T) {
 		defaultDir := "testing"
 
 		store := FileSystemStore{}
-		err := store.Setup(defaultDir)
+		err := store.Setup(context.Background(), defaultDir)
 
 		if err != nil {
 			t.Errorf("There was an error trying to setup directory")
@@ -33,7 +34,7 @@ func TestFileSystemStore(t *testing.T) {
 
 		createTempFile(t, store.defaultLocation, filename, initialData)
 
-		got, _ := store.Get(filename)
+		got, _ := store.Get(context.Background(), filename)
 
 		assertData(t, initialData, got)
 
@@ -48,7 +49,7 @@ func TestFileSystemStore(t *testing.T) {
 
 		createTempFile(t, store.defaultLocation, filename, initialData)
 
-		_, err := store.Get("non-existing")
+		_, err := store.Get(context.Background(), "non-existing")
 
 		assertError(t, err)
 	})

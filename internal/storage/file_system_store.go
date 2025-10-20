@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,7 @@ type FileSystemStore struct {
 	defaultLocation string
 }
 
-func (f *FileSystemStore) Setup(defaultLocation string) error {
+func (f *FileSystemStore) Setup(ctx context.Context, defaultLocation string) error {
 	err := os.Mkdir(defaultLocation, 0755)
 
 	if err != nil && !os.IsExist(err) {
@@ -26,7 +27,7 @@ func (f *FileSystemStore) Setup(defaultLocation string) error {
 	return nil
 }
 
-func (f *FileSystemStore) Get(fileName string) ([]byte, error) {
+func (f *FileSystemStore) Get(ctx context.Context, fileName string) ([]byte, error) {
 	path := filepath.Join(f.defaultLocation, fileName)
 
 	if _, err := os.Stat(path); err != nil {
