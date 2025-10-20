@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -27,14 +28,17 @@ func (f *FileSystemStore) Setup(ctx context.Context, defaultLocation string) err
 	return nil
 }
 
-func (f *FileSystemStore) Get(ctx context.Context, fileName string) ([]byte, error) {
+func (f *FileSystemStore) Get(ctx context.Context, fileName string) (io.ReadCloser, error) {
 	path := filepath.Join(f.defaultLocation, fileName)
 
-	if _, err := os.Stat(path); err != nil {
-		return nil, fmt.Errorf("%s: %w", FileNotFoundException, err)
-	}
+	file, err := os.Open(path)
 
-	file, _ := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("%s: %w", FileNotFoundException, err)
+		}
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
 
 	return file, nil
 }

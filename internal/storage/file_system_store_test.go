@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,10 +35,14 @@ func TestFileSystemStore(t *testing.T) {
 
 		createTempFile(t, store.defaultLocation, filename, initialData)
 
-		got, _ := store.Get(context.Background(), filename)
+		reader, _ := store.Get(context.Background(), filename)
+		got, err := io.ReadAll(reader)
+
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
 
 		assertData(t, initialData, got)
-
 	})
 
 	t.Run("Retrieve file in non-existing path", func(t *testing.T) {

@@ -4,6 +4,7 @@ go 1.25
 
 require (
 	github.com/buraksezer/consistent v0.10.0 // indirect
+	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/docker/docker v28.5.1+incompatible // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
