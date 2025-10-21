@@ -105,7 +105,7 @@ func (m *MinioStore) Get(ctx context.Context, filenameId string) (io.ReadCloser,
 	if err != nil {
 		var resp minio.ErrorResponse
 		if errors.As(err, &resp) && resp.Code == "NoSuchKey" {
-			return nil, fmt.Errorf("object %s not found in bucket %s", filenameId, m.DefaultBucket)
+			return nil, ErrObjectNotFound
 		}
 		return nil, fmt.Errorf("read object: %w", err)
 	}

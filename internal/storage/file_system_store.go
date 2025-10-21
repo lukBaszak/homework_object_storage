@@ -58,7 +58,7 @@ func (f *FileSystemStore) Get(ctx context.Context, fileName string) (io.ReadClos
 
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("%s: %w", FileNotFoundException, err)
+			return nil, os.ErrNotExist
 		}
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}

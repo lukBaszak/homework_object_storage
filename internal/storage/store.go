@@ -2,8 +2,11 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 )
+
+var ErrObjectNotFound = errors.New("object not found")
 
 type Store interface {
 	Setup(ctx context.Context, defaultLocation string) error
