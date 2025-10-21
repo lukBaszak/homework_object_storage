@@ -11,9 +11,11 @@ import (
 
 func TestFileSystemStore(t *testing.T) {
 
-	t.Run("Setup with default directory", func(t *testing.T) {
-		defaultDir := "testing"
+	defaultDir := "testing"
+	filename := "testFile"
+	initialData := []byte("Hello world")
 
+	t.Run("Setup with default directory", func(t *testing.T) {
 		store := FileSystemStore{}
 		err := store.Setup(context.Background(), defaultDir)
 
@@ -28,10 +30,7 @@ func TestFileSystemStore(t *testing.T) {
 
 	t.Run("Retrieve file in existing path", func(t *testing.T) {
 
-		store := FileSystemStore{defaultLocation: "testing"}
-
-		filename := "testFile"
-		initialData := []byte("Hello world")
+		store := FileSystemStore{defaultLocation: defaultDir}
 
 		createTempFile(t, store.defaultLocation, filename, initialData)
 
@@ -47,16 +46,31 @@ func TestFileSystemStore(t *testing.T) {
 
 	t.Run("Retrieve file in non-existing path", func(t *testing.T) {
 
-		store := FileSystemStore{defaultLocation: "testing"}
-
-		filename := "testFile"
-		initialData := []byte("Hello world")
+		store := FileSystemStore{defaultLocation: defaultDir}
 
 		createTempFile(t, store.defaultLocation, filename, initialData)
 
 		_, err := store.Get(context.Background(), "non-existing")
 
 		assertError(t, err)
+	})
+
+	t.Run("Put file with chosen filename", func(t *testing.T) {
+
+		store := FileSystemStore{defaultLocation: defaultDir}
+
+		store.Setup(context.Background(), defaultDir)
+
+		err := store.Put(context.Background(), filename, bytes.NewReader(initialData), int64(len(initialData)))
+
+		if err != nil {
+			t.Errorf("couldn't create file: %v", err)
+		}
+
+		reader, _ := store.Get(context.Background(), filename)
+		got, _ := io.ReadAll(reader)
+
+		assertData(t, initialData, got)
 	})
 }
 

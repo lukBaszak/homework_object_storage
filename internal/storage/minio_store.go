@@ -62,8 +62,9 @@ func NewNodesConfig(minioConfigs []MinioConfig) map[string]Node {
 }
 
 type MinioStore struct {
-	HashRing *consistent.Consistent
-	Nodes    map[string]Node
+	HashRing      *consistent.Consistent
+	Nodes         map[string]Node
+	DefaultBucket string
 }
 
 func (m *MinioStore) Setup(ctx context.Context, defaultLocation string) error {
@@ -83,6 +84,9 @@ func (m *MinioStore) Setup(ctx context.Context, defaultLocation string) error {
 		}
 		m.HashRing.Add(HashRingMember(id))
 	}
+
+	m.DefaultBucket = defaultLocation
+
 	return nil
 }
 
@@ -90,7 +94,7 @@ func (m *MinioStore) Get(ctx context.Context, filenameId string) (io.ReadCloser,
 	key := []byte(filenameId)
 	owner := m.HashRing.LocateKey(key)
 
-	obj, err := m.Nodes[owner.String()].client.GetObject(ctx, "default", filenameId, minio.GetObjectOptions{})
+	obj, err := m.Nodes[owner.String()].client.GetObject(ctx, m.DefaultBucket, filenameId, minio.GetObjectOptions{})
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get object from node %s: %w", owner, err)
@@ -101,11 +105,37 @@ func (m *MinioStore) Get(ctx context.Context, filenameId string) (io.ReadCloser,
 	if err != nil {
 		var resp minio.ErrorResponse
 		if errors.As(err, &resp) && resp.Code == "NoSuchKey" {
-			return nil, fmt.Errorf("object %s not found in bucket %s", filenameId, "default")
+			return nil, fmt.Errorf("object %s not found in bucket %s", filenameId, m.DefaultBucket)
 		}
 		return nil, fmt.Errorf("read object: %w", err)
 	}
 	return obj, nil
+}
+
+func (m *MinioStore) Put(ctx context.Context, fileNameId string, reader io.Reader, size int64) error {
+	key := []byte(fileNameId)
+	owner := m.HashRing.LocateKey(key)
+
+	info, err := m.Nodes[owner.String()].client.PutObject(ctx, m.DefaultBucket, fileNameId, reader, size, minio.PutObjectOptions{})
+
+	if err != nil {
+		var resp minio.ErrorResponse
+		if errors.As(err, &resp) {
+			switch resp.Code {
+			case "NoSuchBucket":
+				return fmt.Errorf("bucket %s does not exist on node %s: %w", m.DefaultBucket, owner, err)
+			case "AccessDenied":
+				return fmt.Errorf("access denied on node %s: %w", owner, err)
+			default:
+				return fmt.Errorf("minio error [%s] from node %s: %w", resp.Code, owner, err)
+			}
+		}
+		return fmt.Errorf("failed to put object on node %s: %w", owner, err)
+	}
+
+	log.Printf("Object %s uploaded to node %s, size=%d, etag=%s", fileNameId, owner, info.Size, info.ETag)
+
+	return nil
 }
 
 func CreateBucket(ctx context.Context, bucketName string, node Node, id string) error {
