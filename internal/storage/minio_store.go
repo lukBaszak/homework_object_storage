@@ -40,7 +40,7 @@ func NewNodesConfig(minioConfigs []MinioConfig) map[string]Node {
 	nodes := make(map[string]Node)
 
 	for _, cfg := range minioConfigs {
-		log.Println("Client initialization with", cfg.Endpoint, "in progress...")
+		log.Println("client initialization with", cfg.Endpoint, "in progress...")
 
 		cli, err := minio.New(cfg.Endpoint, &minio.Options{
 			Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
@@ -48,11 +48,11 @@ func NewNodesConfig(minioConfigs []MinioConfig) map[string]Node {
 		})
 
 		if err != nil {
-			log.Printf("Client initilization failed with %s", cfg.Id)
+			log.Printf("client initilization failed with %s", cfg.Id)
 			continue
 		}
 
-		log.Printf("Clients initilization succeded.")
+		log.Printf("clients initilization succeded.")
 
 		nodes[cfg.Id] = Node{
 			client: cli,
@@ -124,8 +124,6 @@ func (m *MinioStore) Put(ctx context.Context, fileNameId string, reader io.Reade
 			switch resp.Code {
 			case "NoSuchBucket":
 				return fmt.Errorf("bucket %s does not exist on node %s: %w", m.DefaultBucket, owner, err)
-			case "AccessDenied":
-				return fmt.Errorf("access denied on node %s: %w", owner, err)
 			default:
 				return fmt.Errorf("minio error [%s] from node %s: %w", resp.Code, owner, err)
 			}
@@ -142,7 +140,7 @@ func CreateBucket(ctx context.Context, bucketName string, node Node, id string) 
 	exists, err := node.client.BucketExists(ctx, bucketName)
 
 	if err != nil {
-		log.Printf("There was an error during initial setup of %s node: %v", id, err)
+		log.Printf("there was an error during initial setup of %s node: %v", id, err)
 	}
 
 	if !exists {
