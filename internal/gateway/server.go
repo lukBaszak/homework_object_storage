@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"main/internal/storage"
 	"net/http"
 
@@ -48,11 +47,9 @@ func (o *ObjectGatewayServer) getObject(ctx context.Context, w http.ResponseWrit
 
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotFound) {
-			log.Printf("error: %v", err)
 			http.Error(w, "object not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("error2: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

@@ -8,10 +8,6 @@ import (
 	"path/filepath"
 )
 
-const (
-	FileNotFoundException = "couldn't find given file"
-)
-
 type FileSystemStore struct {
 	defaultLocation string
 }
@@ -58,7 +54,7 @@ func (f *FileSystemStore) Get(ctx context.Context, fileName string) (io.ReadClos
 
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, os.ErrNotExist
+			return nil, ErrObjectNotFound
 		}
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
