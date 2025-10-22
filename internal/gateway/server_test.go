@@ -1,13 +1,13 @@
 package gateway
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"main/internal/storage"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -15,8 +15,7 @@ import (
 func TestGETFile(t *testing.T) {
 
 	defaultDir := "testing"
-	filename := "default"
-	initialData := []byte("Hello world")
+	initialData := "Hello world"
 	store := storage.FileSystemStore{}
 
 	server := NewObjectGatewayServer(&store)
@@ -26,10 +25,8 @@ func TestGETFile(t *testing.T) {
 	}
 
 	t.Run("Retrieve existing object with correct path", func(t *testing.T) {
-		path := filepath.Join(defaultDir, filename)
-		if err := os.WriteFile(path, initialData, 0644); err != nil {
-			t.Fatalf("failed to write test file: %v", err)
-		}
+		filename, cleanFile := createTempFile(t, defaultDir, initialData)
+		defer cleanFile()
 
 		request, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/object/%s", filename), nil)
 		response := httptest.NewRecorder()
@@ -59,6 +56,30 @@ func TestGETFile(t *testing.T) {
 	})
 }
 
+func TestPUTFile(t *testing.T) {
+	defaultDir := "testing"
+	filename := "default"
+	initialData := []byte("Hello world")
+	store := storage.FileSystemStore{}
+
+	server := NewObjectGatewayServer(&store)
+
+	if err := store.Setup(context.Background(), defaultDir); err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	defer os.RemoveAll(defaultDir)
+
+	t.Run("Put new file in correct path", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/object/%s", filename), bytes.NewReader(initialData))
+		response := httptest.NewRecorder()
+
+		server.router.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusCreated)
+	})
+}
+
 func assertStatus(t testing.TB, got, want int) {
 	t.Helper()
 	if got != want {
@@ -71,4 +92,23 @@ func assertResponseBody(t testing.TB, got, want string) {
 	if got != want {
 		t.Errorf("response body is wrong, got %q want %q", got, want)
 	}
+}
+
+func createTempFile(t testing.TB, dir, initialData string) (string, func()) {
+	t.Helper()
+
+	tmpfile, err := os.CreateTemp(dir, "test")
+
+	if err != nil {
+		t.Fatalf("could not create temp file %v", err)
+	}
+
+	tmpfile.Write([]byte(initialData))
+
+	removeFile := func() {
+		tmpfile.Close()
+		os.Remove(tmpfile.Name())
+	}
+
+	return strings.Split(tmpfile.Name(), "/")[1], removeFile
 }

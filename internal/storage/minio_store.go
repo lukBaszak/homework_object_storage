@@ -112,28 +112,45 @@ func (m *MinioStore) Get(ctx context.Context, filenameId string) (io.ReadCloser,
 	return obj, nil
 }
 
-func (m *MinioStore) Put(ctx context.Context, fileNameId string, reader io.Reader, size int64) error {
+func (m *MinioStore) Put(ctx context.Context, fileNameId string, reader io.Reader, size int64) (int, error) {
 	key := []byte(fileNameId)
 	owner := m.HashRing.LocateKey(key)
+	node := m.Nodes[owner.String()]
 
-	info, err := m.Nodes[owner.String()].client.PutObject(ctx, m.DefaultBucket, fileNameId, reader, size, minio.PutObjectOptions{})
+	fileOverwrite := m.ObjectExists(ctx, node.client, fileNameId)
+
+	info, err := node.client.PutObject(ctx, m.DefaultBucket, fileNameId, reader, size, minio.PutObjectOptions{})
 
 	if err != nil {
 		var resp minio.ErrorResponse
 		if errors.As(err, &resp) {
 			switch resp.Code {
 			case "NoSuchBucket":
-				return fmt.Errorf("bucket %s does not exist on node %s: %w", m.DefaultBucket, owner, err)
+				return PutError, fmt.Errorf("bucket %s does not exist on node %s: %w", m.DefaultBucket, owner, err)
 			default:
-				return fmt.Errorf("minio error [%s] from node %s: %w", resp.Code, owner, err)
+				return PutError, fmt.Errorf("minio error [%s] from node %s: %w", resp.Code, owner, err)
 			}
 		}
-		return fmt.Errorf("failed to put object on node %s: %w", owner, err)
+		return PutError, fmt.Errorf("failed to put object on node %s: %w", owner, err)
 	}
 
 	log.Printf("Object %s uploaded to node %s, size=%d, etag=%s", fileNameId, owner, info.Size, info.ETag)
 
-	return nil
+	if fileOverwrite {
+		return PutOverwritten, nil
+	}
+
+	return PutCreated, nil
+}
+
+func (m *MinioStore) ObjectExists(ctx context.Context, client *minio.Client, filenameId string) bool {
+	_, err := client.StatObject(ctx, m.DefaultBucket, filenameId, minio.StatObjectOptions{})
+	if err == nil {
+		return true
+	} else if minio.ToErrorResponse(err).Code == "NoSuchKey" {
+		return false
+	}
+	return false
 }
 
 func CreateBucket(ctx context.Context, bucketName string, node Node, id string) error {

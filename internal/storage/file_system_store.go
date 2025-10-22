@@ -24,27 +24,32 @@ func (f *FileSystemStore) Setup(ctx context.Context, defaultLocation string) err
 	return nil
 }
 
-func (f *FileSystemStore) Put(ctx context.Context, fileName string, reader io.Reader, size int64) error {
+func (f *FileSystemStore) Put(ctx context.Context, fileName string, reader io.Reader, size int64) (int, error) {
 	filePath := filepath.Join(f.defaultLocation, fileName)
 
+	fileExisted := fileExists(filePath)
 	file, err := os.Create(filePath)
 
 	if err != nil {
-		return err
+		return PutError, fmt.Errorf("create file: %w", err)
 	}
 	defer file.Close()
 
 	written, err := io.Copy(file, reader)
 
 	if err != nil {
-		return err
+		return PutError, fmt.Errorf("copy data: %w", err)
 	}
 
 	if written != size {
-		return io.ErrShortWrite
+		return PutError, io.ErrShortWrite
 	}
 
-	return nil
+	if fileExisted {
+		return PutOverwritten, nil
+	}
+
+	return PutCreated, nil
 }
 
 func (f *FileSystemStore) Get(ctx context.Context, fileName string) (io.ReadCloser, error) {
@@ -60,4 +65,9 @@ func (f *FileSystemStore) Get(ctx context.Context, fileName string) (io.ReadClos
 	}
 
 	return file, nil
+}
+
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return err == nil
 }
