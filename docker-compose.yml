@@ -36,13 +36,17 @@ services:
 
   gateway-container:
     build: .
+    depends_on:
+      - amazin-object-storage-node-1
+      - amazin-object-storage-node-2
+      - amazin-object-storage-node-3
     ports: [ "3000:3000" ]
     networks:
       amazin-object-storage:
         ipv4_address: 169.253.0.5
     environment:
       DOCKER_API_VERSION: "1.41"
-      BUCKET_NAME: "bucket"
+      BUCKET_NAME: "default"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 networks:

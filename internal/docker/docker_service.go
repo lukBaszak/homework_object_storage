@@ -3,7 +3,6 @@ package docker
 import (
 	"context"
 	"fmt"
-	"log"
 	"main/internal/storage"
 	"strings"
 
@@ -16,9 +15,8 @@ func GetMinioConfig(ctx context.Context, cli *client.Client, filterKey, filterVa
 	args := filters.NewArgs()
 	args.Add("label", fmt.Sprintf("%s=%s", filterKey, filterValue))
 
-	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true})
+	containers, err := cli.ContainerList(ctx, container.ListOptions{Filters: args})
 
-	log.Println(containers)
 	if err != nil {
 		return nil, err
 	}

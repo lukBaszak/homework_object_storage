@@ -157,12 +157,12 @@ func CreateBucket(ctx context.Context, bucketName string, node Node, id string) 
 	exists, err := node.client.BucketExists(ctx, bucketName)
 
 	if err != nil {
-		log.Printf("there was an error during initial setup of %s node: %v", id, err)
+		return err
 	}
 
 	if !exists {
 		if err := node.client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{}); err != nil {
-			return fmt.Errorf("there was an error during initial bucket creation in %s node: %v", id, err)
+			return err
 		}
 	}
 	return nil

@@ -45,6 +45,8 @@ func (o *ObjectGatewayServer) ObjectHandler(w http.ResponseWriter, r *http.Reque
 		o.getObject(ctx, w, vars["id"])
 	case http.MethodPut:
 		o.putObject(ctx, w, r.Body, vars["id"], r.ContentLength)
+	default:
+		http.Error(w, "", http.StatusMethodNotAllowed)
 	}
 }
 
