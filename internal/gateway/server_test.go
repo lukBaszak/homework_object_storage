@@ -52,7 +52,7 @@ func TestGETFile(t *testing.T) {
 
 		server.router.ServeHTTP(response, request)
 
-		assertStatus(t, response.Code, http.StatusNotFound)
+		assertStatus(t, response.Code, http.StatusBadRequest)
 	})
 }
 
@@ -77,6 +77,26 @@ func TestPUTFile(t *testing.T) {
 		server.router.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusCreated)
+	})
+
+	t.Run("Overwrite file in correct path", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/object/%s", filename), bytes.NewReader(initialData))
+		response := httptest.NewRecorder()
+		server.router.ServeHTTP(response, request)
+
+		secondRequest, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/object/%s", filename), bytes.NewReader(initialData))
+		server.router.ServeHTTP(response, secondRequest)
+
+		assertStatus(t, response.Code, http.StatusOK)
+	})
+
+	t.Run("Put new file in incorrect path", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/object/%s", strings.Repeat("0", 33)), bytes.NewReader(initialData))
+		response := httptest.NewRecorder()
+
+		server.router.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
 	})
 }
 

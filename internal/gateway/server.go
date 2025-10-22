@@ -10,6 +10,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const maxIdLength = 32
+
 type ObjectGatewayServer struct {
 	store  storage.Store
 	router *mux.Router
@@ -21,7 +23,7 @@ func NewObjectGatewayServer(store storage.Store) *ObjectGatewayServer {
 	s.store = store
 
 	router := mux.NewRouter()
-	router.HandleFunc("/object/{id:[A-Za-z0-9]{1,32}}", s.ObjectHandler)
+	router.HandleFunc("/object/{id:[A-Za-z0-9]+}", s.ObjectHandler)
 
 	s.router = router
 
@@ -35,6 +37,8 @@ func (o *ObjectGatewayServer) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 func (o *ObjectGatewayServer) ObjectHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ctx := r.Context()
+
+	verifyIdLength(w, vars["id"])
 
 	switch r.Method {
 	case http.MethodGet:
@@ -77,5 +81,11 @@ func (o *ObjectGatewayServer) putObject(ctx context.Context, w http.ResponseWrit
 		w.WriteHeader(http.StatusOK)
 	default:
 		http.Error(w, "failed to stream object", http.StatusInternalServerError)
+	}
+}
+
+func verifyIdLength(w http.ResponseWriter, id string) {
+	if len(id) > maxIdLength {
+		http.Error(w, "id too long", http.StatusBadRequest)
 	}
 }
